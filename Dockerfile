@@ -21,7 +21,7 @@ RUN echo $TZ > /etc/timezone
 RUN apt-get install -y \
     git build-essential cmake  \
     autoconf libtool pkg-config \
-    nano vim sudo strace
+    nano vim sudo strace nginx
 
 # Build OpenSSL
 RUN git clone -b $OPENSSL_VERSION https://github.com/openssl/openssl && \
@@ -57,7 +57,7 @@ RUN git clone -b $LIBCURL_VERSION https://github.com/curl/curl.git && \
     echo "/usr/lib" > /etc/ld.so.conf.d/libcurl.conf && \
     ldconfig
 
-# Create a non-root user that will perform the actual build
+# Create a non-root user
 RUN id $USER 2>/dev/null || useradd --create-home $USER
 RUN echo "$USER ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
 
@@ -68,4 +68,4 @@ WORKDIR /home/$USER
 
 CMD ["/bin/bash"]
 
-EXPOSE 22:2222
+EXPOSE 4443:4443
