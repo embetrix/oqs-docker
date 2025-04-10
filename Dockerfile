@@ -57,6 +57,11 @@ RUN git clone -b $LIBCURL_VERSION https://github.com/curl/curl.git && \
     echo "/usr/lib" > /etc/ld.so.conf.d/libcurl.conf && \
     ldconfig
 
+# Import PQC Root Certificate
+COPY pqc-ca-cert.pem /usr/share/ca-certificates/pqc-ca-cert.pem
+RUN echo "pqc-ca-cert.pem" >> /etc/ca-certificates.conf && \
+    update-ca-certificates
+
 # Create a non-root user
 RUN id $USER 2>/dev/null || useradd --create-home $USER
 RUN echo "$USER ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
