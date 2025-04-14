@@ -4,7 +4,7 @@
 		"dockerfile": "../Dockerfile"
 	},
 	"mounts": [
-		"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/oqs/.ssh,type=bind,consistency=cached"
+	    //"source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/oqs/.ssh,type=bind,consistency=cached"
 	],
 	// Add the IDs of extensions you want installed when the container is created.
 	"customizations": {
