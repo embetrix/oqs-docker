@@ -27,7 +27,7 @@ Proof of Concept using PQC Certificates for TLS1.3 handshake and PQC Key exchang
 ### Generate PQC Root CA
 
 ```
-openssl req -x509 -new -newkey dilithium3 -keyout pqc-ca-key.pem -nodes \
+openssl req -x509 -new -newkey mldsa65 -keyout pqc-ca-key.pem -nodes \
             -subj "/O=Embetrix Root CA PQC" \
             -days 3650  -out pqc-ca-cert.pem
 ```
@@ -35,7 +35,7 @@ openssl req -x509 -new -newkey dilithium3 -keyout pqc-ca-key.pem -nodes \
 ### Generate PQC Server certificate 
 
 ```
-openssl req -new -newkey dilithium3 -keyout pqc-server-key.pem \
+openssl req -new -newkey mldsa65 -keyout pqc-server-key.pem \
         -out pqc-server-csr.pem -nodes \
         -subj "/C=DE/ST=BW/O=Embetrix/CN=localhost" \
         -addext "subjectAltName=DNS:localhost, DNS:localhost,IP:127.0.0.1"
@@ -58,18 +58,28 @@ openssl x509 -in pqc-server-cert.pem -noout -text
 
 ```
 openssl s_server -cert pqc-server-cert.pem -key pqc-server-key.pem -CAfile pqc-ca-cert.pem \
-                 -groups kyber768:kyber1024:frodo640shake -www -tls1_3 -accept 4443 &
+                 -groups X25519MLKEM768:mlkem768 -www -tls1_3 -accept 4443 &
 ```
 
 ### Connect to OpenSSL TLS server using openssl
 
 ```
-echo "q" | openssl s_client -CAfile  pqc-ca-cert.pem \
-                            -groups frodo640shake -showcerts -connect localhost:4443
+echo "q" | openssl s_client -CAfile  pqc-ca-cert.pem -showcerts -connect localhost:4443
 ```
 
 ### Connect to OpenSSL TLS server using curl
 
 ```
-curl --cacert pqc-ca-cert.pem  --curves kyber768 https://localhost:4443
+curl --cacert pqc-ca-cert.pem  --curves mlkem768 https://localhost:4443
 ```
+
+
+### SSH
+
+```
+ssh root@192.168.7.2 -v  -o HostkeyAlgorithms=ssh-mldsa65 -o UserKnownHostsFile=/dev/null
+```
+
+ ```
+ssh root@192.168.7.2 -v  -o HostkeyAlgorithms=rsa-sha2-512  -o UserKnownHostsFile=/dev/null
+ ```

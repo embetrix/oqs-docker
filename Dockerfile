@@ -6,8 +6,8 @@ ENV CMAKE_INSTALL_PREFIX=/usr
 ENV OPENSSL_MODULES=/usr/lib64/ossl-modules
 ENV OPENSSL_VERSION=openssl-3.2.4
 ENV OPENSSH_VERSION=OQS-OpenSSH-snapshot-2024-08
-ENV LIBOQS_VERSION=0.12.0
-ENV OQS_PROVIDER_VERSION=0.8.0
+ENV LIBOQS_VERSION=main
+ENV OQS_PROVIDER_VERSION=main
 ENV LIBCURL_VERSION=curl-8_7_1
 
 RUN apt-get update
@@ -86,9 +86,7 @@ RUN sudo chown -R $USER:$USER /home/$USER
 # Generate SSH keys (Calssical and PQC)
 RUN ssh-keygen -q -t rsa -N '' -f /home/$USER/.ssh/id_rsa
 RUN ssh-keygen -q -t ecdsa -N '' -f /home/$USER/.ssh/id_ecdsa
-RUN ssh-keygen -q -t falcon512 -N '' -f /home/$USER/.ssh/id_falcon512
-RUN ssh-keygen -q -t falcon1024 -N '' -f /home/$USER/.ssh/id_falcon1024
-RUN ssh-keygen -q -t sphincssha2128fsimple -N '' -f /home/$USER/.ssh/id_sphincssha2128fsimple
+RUN ssh-keygen -q -t mldsa65 -N '' -f /home/$USER/.ssh/id_mldsa65
 
 WORKDIR /home/$USER
 
