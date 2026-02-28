@@ -6,8 +6,8 @@ ENV CMAKE_INSTALL_PREFIX=/usr
 ENV OPENSSL_MODULES=/usr/lib64/ossl-modules
 ENV OPENSSL_VERSION=openssl-3.2.4
 ENV OPENSSH_VERSION=OQS-OpenSSH-snapshot-2024-08
-ENV LIBOQS_VERSION=main
-ENV OQS_PROVIDER_VERSION=main
+ENV LIBOQS_VERSION=0.15.0
+ENV OQS_PROVIDER_VERSION=0.11.0
 ENV LIBCURL_VERSION=curl-8_7_1
 
 RUN apt-get update
@@ -22,7 +22,7 @@ RUN echo $TZ > /etc/timezone
 RUN apt-get install -y \
     git build-essential cmake  \
     autoconf libtool libz-dev pkg-config \
-    nano vim sudo strace nginx
+    nano vim sudo strace nginx ca-certificates openvpn
 
 # Build OpenSSL
 RUN git clone -b $OPENSSL_VERSION https://github.com/openssl/openssl && \
@@ -31,7 +31,7 @@ RUN git clone -b $OPENSSL_VERSION https://github.com/openssl/openssl && \
     make -j && \
     make install_sw && \
     echo "/usr/lib64" > /etc/ld.so.conf.d/openssl.conf && \
-    ldconfig
+    ldconfig    
 
 # Build liboqs
 RUN git clone -b $LIBOQS_VERSION https://github.com/open-quantum-safe/liboqs.git && \
@@ -46,11 +46,8 @@ RUN git clone -b $OQS_PROVIDER_VERSION https://github.com/open-quantum-safe/oqs-
     make -j install
 
 # Enable oqsprovider by default
-RUN sed -i "s/default = default_sect/default = default_sect\noqsprovider = oqsprovider_sect/g"          /etc/ssl/openssl.cnf  && \
-    sed -i "s/\[default_sect\]/\[default_sect\]\nactivate = 1\n\[oqsprovider_sect\]\nactivate = 1\n/g"  /etc/ssl/openssl.cnf  && \
-    # Selecting TLS1.3 default groups (Hybrid and Pure PQC)
-    sed -i "s/providers = provider_sect/providers = provider_sect\nssl_conf = ssl_sect\n\n\[ssl_sect\]\nsystem_default = system_default_sect\n\n\[system_default_sect\]\nGroups = \$ENV\:\:DEFAULT_GROUPS\n/g" /etc/ssl/openssl.cnf  && \
-    sed -i "s/HOME\t\t\t= ./HOME           = .\nDEFAULT_GROUPS = X25519MLKEM768:mlkem768/g" /etc/ssl/openssl.cnf
+COPY openssl-oqs.cnf /etc/ssl/openssl-oqs.cnf
+RUN printf "\n# Enable oqs provider config\n.include /etc/ssl/openssl-oqs.cnf\n"  >> /etc/ssl/openssl.cnf
 
 # Build OpenSSH
 RUN git clone -b $OPENSSH_VERSION https://github.com/open-quantum-safe/openssh.git && \
@@ -66,30 +63,42 @@ RUN git clone -b $LIBCURL_VERSION https://github.com/curl/curl.git && \
     echo "/usr/lib" > /etc/ld.so.conf.d/libcurl.conf && \
     ldconfig
 
-# Import PQC Root Certificate
-COPY ca-cert.pem /usr/share/ca-certificates/ca-cert.pem
-RUN echo "ca-cert.pem" >> /etc/ca-certificates.conf && \
-    update-ca-certificates
-
-# Import PQC Root Certificate
-COPY pqc-ca-cert.pem /usr/share/ca-certificates/pqc-ca-cert.pem
-RUN echo "pqc-ca-cert.pem" >> /etc/ca-certificates.conf && \
-    update-ca-certificates
 
 # Create a non-root user
 RUN id $USER 2>/dev/null || useradd --create-home $USER
 RUN echo "$USER ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
 
+# Import Root Key/Certificate
+ADD https://raw.githubusercontent.com/embetrix/meta-oqs/refs/heads/scarthgap/recipes-support/oqs-demos/files/ca-cert.pem \
+    /usr/share/ca-certificates/ca-cert.pem
+RUN echo "ca-cert.pem" >> /etc/ca-certificates.conf && \
+    update-ca-certificates
+RUN cp /usr/share/ca-certificates/ca-cert.pem /home/$USER/
+ADD https://raw.githubusercontent.com/embetrix/meta-oqs/refs/heads/scarthgap/recipes-support/oqs-demos/files/ca-key.pem \
+    /home/$USER/ca-key.pem
+
+# Import PQC Root Key/Certificate
+ADD https://raw.githubusercontent.com/embetrix/meta-oqs/refs/heads/scarthgap/recipes-support/oqs-demos/files/pqc-ca-cert.pem \
+    /usr/share/ca-certificates/pqc-ca-cert.pem
+RUN echo "pqc-ca-cert.pem" >> /etc/ca-certificates.conf && \
+    update-ca-certificates
+RUN cp /usr/share/ca-certificates/pqc-ca-cert.pem /home/$USER/
+ADD https://raw.githubusercontent.com/embetrix/meta-oqs/refs/heads/scarthgap/recipes-support/oqs-demos/files/pqc-ca-key.pem \
+    /home/$USER/pqc-ca-key.pem
+
+# Generate client certificates
+ADD gen-certs.sh /home/$USER/gen-certs.sh
+RUN /bin/sh -c "cd /home/$USER && ./gen-certs.sh"
+
 USER $USER
 RUN sudo chown -R $USER:$USER /home/$USER
 
-# Generate SSH keys (Calssical and PQC)
-RUN ssh-keygen -q -t rsa -N '' -f /home/$USER/.ssh/id_rsa
-RUN ssh-keygen -q -t ecdsa -N '' -f /home/$USER/.ssh/id_ecdsa
+# Generate SSH keys (Classical and PQC)
+RUN ssh-keygen -q -t rsa -N ''     -f /home/$USER/.ssh/id_rsa
+RUN ssh-keygen -q -t ecdsa -N ''   -f /home/$USER/.ssh/id_ecdsa
 RUN ssh-keygen -q -t mldsa65 -N '' -f /home/$USER/.ssh/id_mldsa65
 
 WORKDIR /home/$USER
 
 CMD ["/bin/bash"]
 
-EXPOSE 4443:4443
