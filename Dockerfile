@@ -22,7 +22,7 @@ RUN echo $TZ > /etc/timezone
 RUN apt-get install -y \
     git build-essential cmake  \
     autoconf libtool libz-dev pkg-config \
-    nano vim sudo strace nginx ca-certificates openvpn
+    nano vim sudo strace nginx ca-certificates openvpn mosquitto-clients
 
 # Build OpenSSL
 RUN git clone -b $OPENSSL_VERSION https://github.com/openssl/openssl && \
