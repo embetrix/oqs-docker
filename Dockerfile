@@ -5,7 +5,7 @@ ENV DEBIAN_FRONTEND noninteractive
 ENV CMAKE_INSTALL_PREFIX=/usr
 ENV OPENSSL_MODULES=/usr/lib64/ossl-modules
 ENV OPENSSL_VERSION=openssl-3.2.4
-ENV OPENSSH_VERSION=OQS-OpenSSH-snapshot-2024-08
+ENV OPENSSH_VERSION=OQS-v9
 ENV LIBOQS_VERSION=0.15.0
 ENV OQS_PROVIDER_VERSION=0.11.0
 ENV LIBCURL_VERSION=curl-8_7_1
@@ -96,7 +96,7 @@ RUN sudo chown -R $USER:$USER /home/$USER
 # Generate SSH keys (Classical and PQC)
 RUN ssh-keygen -q -t rsa -N ''     -f /home/$USER/.ssh/id_rsa
 RUN ssh-keygen -q -t ecdsa -N ''   -f /home/$USER/.ssh/id_ecdsa
-RUN ssh-keygen -q -t mldsa65 -N '' -f /home/$USER/.ssh/id_mldsa65
+RUN ssh-keygen -q -t mldsa-65 -N '' -f /home/$USER/.ssh/id_mldsa65
 
 WORKDIR /home/$USER
 
